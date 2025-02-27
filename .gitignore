@@ -1,0 +1,9 @@
+Debug
+Drivers
+*.ld
+.cproject
+.mxproject
+.project
+.settings
+Core/Startup
+gps\ Debug.launch
