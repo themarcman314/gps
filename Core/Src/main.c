@@ -44,8 +44,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t gps_rx_data[200] = "";
-HAL_StatusTypeDef err = HAL_ERROR;
+
 
 /* USER CODE END PV */
 
@@ -92,8 +91,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  uint8_t gps_request[30] = "";
-  uint16_t rx_bytes_num = 0;
+
+
 
   printf("Starting user code...\r\n");
 
@@ -103,14 +102,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  err = HAL_UARTEx_ReceiveToIdle(&huart1, gps_rx_data, sizeof(gps_rx_data), &rx_bytes_num, 1100);
-
-	  if(err == HAL_OK)
-	  {
-		  printf("Received\r\n");
-	  }
-	  else
-		  printf("Did not receive\r\n");
+	  gps_routine();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
