@@ -76,11 +76,11 @@ void parseGPGGA(uint8_t *gpgga_data_str, struct GPGGA *fields)
 {
 	uint32_t field_count = 0;
     // Returns first token
-    char *token = strtok((char *)gpgga_data_str, ",");
+    char *token;
 
     // Keep printing tokens while one of the
     // delimiters present in str[].
-    while (token != NULL) {
+    while( (token = strsep((char **)&gpgga_data_str, ",")) != NULL) {
         switch (field_count) {
 			case 0:memcpy(fields->time, token, sizeof(fields->time)); break;
 			case 1:memcpy(fields->latitude, token, sizeof(fields->latitude)); break;
