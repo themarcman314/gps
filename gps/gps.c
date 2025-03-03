@@ -10,7 +10,8 @@
 #include "stm32f4xx_hal.h"
 #include "usart.h"
 
-
+#define MAX_SIZE_SENTENCE 80
+#define NMEA_HEADER_SIZE 5
 
 struct GPGGA
 {
@@ -23,48 +24,70 @@ struct GPGGA
     char num_satellites_used;
 };
 
-uint8_t gps_rx_data[200] = "";
+struct NMEA_GPS
+{
+	struct GPGGA gpgga;
+};
+
 HAL_StatusTypeDef err = HAL_ERROR;
 
-struct GPGGA fields;
-void parse(uint8_t *str, struct GPGGA *fields);
+void parseGPGGA(uint8_t *, struct GPGGA *fields);
 void print_fields(struct GPGGA *fields);
+void seperate_sentences(uint8_t *, struct NMEA_GPS *fields);
 
 
 uint16_t rx_bytes_num = 0;
-uint8_t buf[30];
 
 void gps_routine()
 {
+	uint8_t gps_rx_data[200] = "";
+
+	struct NMEA_GPS fields = {};
+	fields.gpgga.num_satellites_used = '0';
+
 	err = HAL_UARTEx_ReceiveToIdle(&huart1, gps_rx_data, sizeof(gps_rx_data), &rx_bytes_num, 1100);
 
 	if(err == HAL_OK)
 	{
 	  printf("Received\r\n");
 
-	  // Parse data
-	  memcpy(buf, gps_rx_data, 30);
-	  parse(gps_rx_data, &fields);
+//	  parse(gps_rx_data, &fields);
+	  seperate_sentences(gps_rx_data, &fields);
+	  print_fields(&fields.gpgga);
 	}
 	else
 	  printf("Did not receive\r\n");
 }
-void parse(uint8_t *str, struct GPGGA *fields)
+
+void seperate_sentences(uint8_t *gps_rx_str, struct NMEA_GPS *fields)
+{
+    char *token = strtok((char *)gps_rx_str, "$");
+    while (token != NULL)
+    {
+//    	printf("size of token : %u\r\n", strlen(token));
+//    	printf("%s\r\n",token);
+    	if(memcmp("GPGGA", token, NMEA_HEADER_SIZE) == 0)
+    		parseGPGGA((uint8_t *)token+NMEA_HEADER_SIZE+1, &fields->gpgga);
+    	token = strtok(NULL, "$");
+    }
+
+}
+void parseGPGGA(uint8_t *gpgga_data_str, struct GPGGA *fields)
 {
 	uint32_t field_count = 0;
     // Returns first token
-    char* token = strtok(str, ",");
+    char *token = strtok((char *)gpgga_data_str, ",");
 
     // Keep printing tokens while one of the
     // delimiters present in str[].
     while (token != NULL) {
-        printf(" %s\r\n", token);
         switch (field_count) {
-			case 1:strncpy(fields->time, token, sizeof(fields->time)); break;
-			case 2:strncpy(fields->latitude, token, sizeof(fields->latitude)); break;
-			case 7:strncpy(&fields->num_satellites_used, token, sizeof(fields->num_satellites_used)); break;
+			case 0:memcpy(fields->time, token, sizeof(fields->time)); break;
+			case 1:memcpy(fields->latitude, token, sizeof(fields->latitude)); break;
+			case 3:memcpy(fields->longitude, token, sizeof(fields->longitude)); break;
+			case 6:memcpy(&fields->num_satellites_used, token, sizeof(fields->num_satellites_used)); break;
 
-			default: printf("Normal\r\n");
+			default:
 				break;
 		}
         field_count++;
@@ -75,7 +98,8 @@ void parse(uint8_t *str, struct GPGGA *fields)
 
 void print_fields(struct GPGGA *fields)
 {
-    printf("time : %s\r\n", fields->time);
+    printf("time : %.2sh %.2sm %.2ss\r\n", fields->time, fields->time+2, fields->time+4);
     printf("latitude : %s\r\n", fields->latitude);
-    printf("num sat : %c\r\n", fields->num_satellites_used);
+    printf("longitude : %s\r\n", fields->longitude);
+    printf("number of connected sat : %c\r\n", fields->num_satellites_used);
 }
